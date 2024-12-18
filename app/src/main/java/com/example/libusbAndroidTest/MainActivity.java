@@ -1,13 +1,17 @@
 package com.example.libusbAndroidTest;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
@@ -17,9 +21,11 @@ import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.libusbAndroidTest.databinding.ActivityMainBinding;
 
@@ -39,10 +45,13 @@ public class MainActivity extends AppCompatActivity {
     private EditText volInput;
 
     private CheckBox autoApply;
+    private CheckBox quitAfterApply;
+
+    private Button recordPermissionButton;
 
     private int deviceDescriptor = -1;
-
     private static String deviceName;
+
     private static final String TAG = "USB DAC Volume Adjustment" ;
     private static final String ACTION_USB_PERMISSION =
             "com.android.example.USB_PERMISSION";
@@ -79,15 +88,10 @@ public class MainActivity extends AppCompatActivity {
         deviceName = initializeNativeDevice(fileDescriptor);
         deviceDescriptor = fileDescriptor;
 
-        if(autoApply.isChecked()){
+        if(autoApply.isChecked() && quitAfterApply.isChecked()){
             setDeviceVolume(fileDescriptor);
+            finishAndRemoveTask();
         }
-
-
-        // Example of a call to a native method
-        tv.setText(deviceName);
-        tv.setBackgroundColor(Color.TRANSPARENT);
-
     }
 
     protected void checkUsbDevices()
@@ -115,10 +119,19 @@ public class MainActivity extends AppCompatActivity {
         tv = binding.sampleText;
         volInput = binding.volume;
         autoApply = binding.autoApply;
+        quitAfterApply = binding.quitAfterApply;
+        recordPermissionButton = binding.recordPermissionButton;
 
         SharedPreferences settings = getApplicationContext().getSharedPreferences("myPrefs", 0);
         volInput.setText(settings.getString("volume", "0000"));
         autoApply.setChecked(settings.getBoolean("autoApply", false));
+        quitAfterApply.setChecked(settings.getBoolean("quitAfterApply", false));
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED) {
+                recordPermissionButton.setEnabled(false);
+        }
 
         // Initialize UsbManager
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -154,13 +167,19 @@ public class MainActivity extends AppCompatActivity {
             editor.apply();
         }
     }
-    public void checkboxPressed(View view){
+    public void autoApplyCheckboxPressed(View view){
         SharedPreferences settings = getApplicationContext().getSharedPreferences("myPrefs", 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.putBoolean("autoApply", autoApply.isChecked());
         editor.apply();
     }
 
+    public void quitAfterApplyCheckboxPressed(View view){
+        SharedPreferences settings = getApplicationContext().getSharedPreferences("myPrefs", 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean("quitAfterApply", quitAfterApply.isChecked());
+        editor.apply();
+    }
 
     public static byte[] hexStringToByteArray(String s) {
         int len = s.length();
@@ -187,5 +206,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setDeviceVolume(fileDescriptor, hexStringToByteArray(volume));
+        Toast.makeText(getApplicationContext(), "Volume set for DAC!", Toast.LENGTH_LONG).show();
+    }
+
+    // Trigger the permission popup
+
+    private final int CALLBACK_PERMISSION = 1;
+    public void recordPermissionButtonPressed(View view) {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, CALLBACK_PERMISSION);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CALLBACK_PERMISSION) {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    recordPermissionButton.setEnabled(false);
+                return;
+            }
+        }
     }
 }
