@@ -31,20 +31,29 @@ static void print_endpoint(const struct libusb_endpoint_descriptor *endpoint)
     log("        bRefresh:            %u\n", endpoint->bRefresh);
     log("        bSynchAddress:       %u\n", endpoint->bSynchAddress);
 
-    for (i = 0; i < endpoint->extra_length;) {
+    /* The extra bytes come from the (untrusted) USB device and may be
+     * malformed. Each descriptor must be at least 2 bytes long; a zero
+     * length would loop forever. Reading [i + 1] out of bounds must be
+     * prevented as well. */
+    i = 0;
+    while (i + 1 < endpoint->extra_length) {
+        uint8_t descLength = endpoint->extra[i];
+        if (descLength < 2) {
+            log("        malformed extra descriptor, aborting\n");
+            break;
+        }
+
         if (LIBUSB_DT_SS_ENDPOINT_COMPANION == endpoint->extra[i + 1]) {
             struct libusb_ss_endpoint_companion_descriptor *ep_comp;
 
             ret = libusb_get_ss_endpoint_companion_descriptor(nullptr, endpoint, &ep_comp);
-            if (LIBUSB_SUCCESS != ret)
-                continue;
-
-            print_endpoint_comp(ep_comp);
-
-            libusb_free_ss_endpoint_companion_descriptor(ep_comp);
+            if (LIBUSB_SUCCESS == ret) {
+                print_endpoint_comp(ep_comp);
+                libusb_free_ss_endpoint_companion_descriptor(ep_comp);
+            }
         }
 
-        i += endpoint->extra[i];
+        i += descLength;
     }
 }
 
@@ -152,13 +161,19 @@ static void print_configuration(struct libusb_config_descriptor *config)
 static std::string get_device_name(libusb_device *dev, libusb_device_handle *handle)
 {
     struct libusb_device_descriptor desc{};
-    unsigned char productString[50];
+    unsigned char productString[50] = {};
 
     int ret = libusb_get_device_descriptor(dev, &desc);
-    ret = libusb_get_string_descriptor_ascii(handle, desc.iProduct, productString, sizeof(productString));
-    std::string productName(productString, productString+sizeof(productString)/sizeof(productString[0]));
+    if (ret < 0 || desc.iProduct == 0) {
+        return "USB Device";
+    }
 
-    return productName;
+    ret = libusb_get_string_descriptor_ascii(handle, desc.iProduct, productString, sizeof(productString) - 1);
+    if (ret <= 0) {
+        return "USB Device";
+    }
+
+    return std::string(reinterpret_cast<char*>(productString), (size_t) ret);
 }
 
 static void print_device(libusb_device *dev, libusb_device_handle *handle)

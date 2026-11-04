@@ -4,6 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:padding="16dp"
     tools:context=".MainActivity">
 
     <TextView
@@ -14,33 +16,52 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.8" />
 
     <Button
         android:id="@+id/mount_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="114dp"
         android:layout_marginTop="20dp"
-        android:layout_marginEnd="115dp"
         android:onClick="applyButtonPressed"
         android:text="Apply"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/auto_apply" />
+        app:layout_constraintTop_toBottomOf="@+id/automatic_hint" />
+
+    <TextView
+        android:id="@+id/auto_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_horizontal"
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/mount_btn" />
+
+    <Button
+        android:id="@+id/share_report"
+        style="?attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:onClick="shareReportPressed"
+        android:text="Share crash report"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/auto_status" />
 
     <EditText
         android:id="@+id/volume"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="100dp"
         android:layout_marginTop="73dp"
-        android:layout_marginEnd="101dp"
         android:ems="10"
         android:hint="VOLUME (HEX)"
         android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -48,13 +69,33 @@
         android:id="@+id/auto_apply"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="129dp"
         android:layout_marginTop="17dp"
-        android:layout_marginEnd="129dp"
         android:onClick="checkboxPressed"
-        android:text="Auto Apply on Start"
+        android:text="Auto Apply on Connect"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/volume" />
+
+    <CheckBox
+        android:id="@+id/automatic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:onClick="automaticCheckboxPressed"
+        android:text="Automatic (invisible)"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/auto_apply" />
+
+    <TextView
+        android:id="@+id/automatic_hint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Apply saves your volume. When Android asks about USB access, tick &quot;Always open USB DAC Volume&quot; once: from then on the volume is restored invisibly on every connect, without opening this app, also after a restart. Only a factory reset, uninstalling or clearing app data removes it."
+        android:textSize="12sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/automatic" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

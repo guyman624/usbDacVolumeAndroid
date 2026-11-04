@@ -13,4 +13,17 @@
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- Invisible theme for the USB attach handler. The window is never
+         displayed, so plugging in a DAC never shows any user interface. -->
+    <style name="Theme.USBTransparent" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <!-- A NoDisplay activity must finish before onResume; a transparent
+             window lets the USB worker finish without that lifecycle crash. -->
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

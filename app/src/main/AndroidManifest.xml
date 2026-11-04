@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Avoids the audio capture warning in the USB permission dialog. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Re-applies the saved volume after a reboot, when the DAC is already
+         attached and no USB_DEVICE_ATTACHED broadcast is sent. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="true" />
+
     <application
-        android:allowBackup="true"
+        android:name="com.example.libusbAndroidTest.UsbDacApp"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -10,20 +22,73 @@
         android:theme="@style/Theme.LibusbAndroidTest">
         <activity
             android:name="com.example.libusbAndroidTest.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
 
+        <!--
+            Invisible handler for USB device attach events. The system starts
+            it when a DAC is plugged in; it never shows a window and finishes
+            as soon as the volume is written.
+
+            It must be enabled from the first launch: Android only offers
+            "Always open this app when the device is connected" in the USB
+            permission dialog while the app has an enabled activity for
+            USB_DEVICE_ATTACHED. That choice is the only persistent USB grant
+            (stored by the system, survives replugs and reboots, cleared by a
+            factory reset or uninstall). Unticking both automatic options
+            disables the component, so a replug then launches nothing.
+        -->
+        <activity
+            android:name="com.example.libusbAndroidTest.UsbAttachActivity"
+            android:enabled="true"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.USBTransparent"
+            android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
 
-            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+        <!-- Receives the USB permission dialog result (explicit broadcast). -->
+        <receiver
+            android:name="com.example.libusbAndroidTest.UsbPermissionReceiver"
+            android:exported="false" />
+
+        <!-- Tracks real unplug events (protected system broadcast). -->
+        <receiver
+            android:name="com.example.libusbAndroidTest.UsbDetachReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Re-applies the volume after a reboot. The DAC is already attached
+             at boot, so no USB_DEVICE_ATTACHED event is delivered and the
+             invisible attach handler never runs on its own. -->
+        <receiver
+            android:name="com.example.libusbAndroidTest.UsbBootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
